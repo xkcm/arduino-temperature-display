@@ -13,7 +13,7 @@ async function createSerialPortInstance() {
   })
 }
 
-function createArduinoObservable(serialPort) {
+function createArduinoObserver(serialPort) {
   const sub = fromEvent(serialPort, 'data')
   return sub.pipe(
     map(b => b.toString()),
@@ -38,24 +38,35 @@ async function cmd(cmd) {
   })
 }
 
-async function readGPUTemperature() {
-  let output = await cmd('sensors')
-  output = output.split('\n')
-  const temp = output.splice(
-    output.findIndex(line => line.toLowerCase().includes('pci adapter')),
-    3
-  ).slice(-1)[0].match(/temp1:\s+\+(\d+\.\d)°C/)[1]
-  return temp+'C'
+async function readSensor({ device, sensor, property }) {
+  const rawOutput = await cmd('sensors -j')
+  let parsed
+  try {
+    parsed = JSON.parse(rawOutput)
+  } catch {
+    return '0C'
+  }
+  if (!Reflect.has(parsed, device)) {
+    throw new Error(`No device "${device}" was detected.`)
+  }
+  let resolvedProperty = property || `${sensor}_input`
+  const value = parsed[device][sensor]?.[resolvedProperty]
+  return {
+    device,
+    sensor,
+    property: resolvedProperty,
+    value
+  }
 }
 
-function createGPUTemperatureObserver(intervalMs = 1000) {
+function createHardwareSensorObserver({ sensorConfig, intervalMs = 1000 }) {
   return interval(intervalMs).pipe(
-    mergeMap(() => readGPUTemperature())
+    mergeMap(() => readSensor(sensorConfig))
   )
 }
 
 module.exports = {
-  createArduinoObservable,
-  createGPUTemperatureObserver,
+  createArduinoObserver,
+  createHardwareSensorObserver,
   createSerialPortInstance
 }

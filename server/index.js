@@ -1,6 +1,6 @@
 
 const { promisify } = require('util');
-const { createArduinoObservable, createSerialPortInstance, createGPUTemperatureObserver } = require('./utils');
+const { createArduinoObserver, createSerialPortInstance, createHardwareSensorObserver } = require('./utils');
 
 async function main() {
   const arduinoSerialPort = await createSerialPortInstance()
@@ -8,12 +8,19 @@ async function main() {
 
   console.log(`Opened serial port at ${arduinoSerialPort.path}`)
 
-  const arduinoData = createArduinoObservable(arduinoSerialPort)
+  const arduinoData = createArduinoObserver(arduinoSerialPort)
   arduinoData.subscribe(console.log) // Read serial data
   
-  const tempObserver = createGPUTemperatureObserver(5000)
-  tempObserver.subscribe(temperature => {
-    arduinoSerialPort.write(temperature)
+  const tempObserver = createHardwareSensorObserver({
+    intervalMs: 1000,
+    sensorConfig: {
+      device: 'nouveau-pci-0100',
+      sensor: 'temp1'
+    }
+  })
+  tempObserver.subscribe(console.log)
+  tempObserver.subscribe(({ value }) => {
+    arduinoSerialPort.write(`${value.toFixed(1)}C`)
     arduinoSerialPort.write('\n')
   })
 }
