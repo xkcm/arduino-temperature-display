@@ -1,6 +1,6 @@
 
 const { promisify } = require('util');
-const { createArduinoObserver, createSerialPortInstance, createHardwareSensorObserver } = require('./utils');
+const { createSerialPortObserver, createSerialPortInstance, createHardwareSensorObserver } = require('./utils');
 
 async function main() {
   const arduinoSerialPort = await createSerialPortInstance()
@@ -8,7 +8,7 @@ async function main() {
 
   console.log(`Opened serial port at ${arduinoSerialPort.path}`)
 
-  const arduinoData = createArduinoObserver(arduinoSerialPort)
+  const arduinoData = createSerialPortObserver(arduinoSerialPort)
   arduinoData.subscribe(console.log) // Read serial data
   
   const tempObserver = createHardwareSensorObserver({

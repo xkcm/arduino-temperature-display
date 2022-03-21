@@ -13,7 +13,7 @@ async function createSerialPortInstance() {
   })
 }
 
-function createArduinoObserver(serialPort) {
+function createSerialPortObserver(serialPort) {
   const sub = fromEvent(serialPort, 'data')
   return sub.pipe(
     map(b => b.toString()),
@@ -66,7 +66,7 @@ function createHardwareSensorObserver({ sensorConfig, intervalMs = 1000 }) {
 }
 
 module.exports = {
-  createArduinoObserver,
+  createSerialPortObserver,
   createHardwareSensorObserver,
   createSerialPortInstance
 }
