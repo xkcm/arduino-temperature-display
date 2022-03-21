@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:uno",
+    "programmer": "arduino:avrisp",
+    "port": "/dev/ttyACM1",
+    "sketch": "arduino/sketch_mar20a.ino"
+}
