@@ -1,19 +1,6 @@
-// Predefined Chars
-// bool CHAR_ZERO[7] = { HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW };
-// bool CHAR_ONE[7] = { LOW, HIGH, HIGH, LOW, LOW, LOW, LOW };
-// bool CHAR_TWO[7] = { HIGH, HIGH, LOW, HIGH, HIGH, LOW, HIGH };
-// bool CHAR_THREE[7] = { HIGH, HIGH, HIGH, HIGH, LOW, LOW, HIGH };
-// bool CHAR_FOUR[7] = { LOW, HIGH, HIGH, LOW, LOW, HIGH, HIGH };
-// bool CHAR_FIVE[7] = { HIGH, LOW, HIGH, HIGH, LOW, HIGH, HIGH };
-// bool CHAR_SIX[7] = { HIGH, LOW, HIGH, HIGH, HIGH, HIGH, HIGH };
-// bool CHAR_SEVEN[7] = { HIGH, HIGH, HIGH, LOW, LOW, LOW, LOW };
-// bool CHAR_EIGHT[7] = { HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH };
-// bool CHAR_NINE[7] = { HIGH, HIGH, HIGH, HIGH, LOW, HIGH, HIGH };
-// bool CHAR_C[7] = { HIGH, LOW, LOW, HIGH, HIGH, HIGH, LOW };
-
 uint8_t pointPin = 9;
-uint8_t segmentPins[7] = { 4, 13, 8, 10, 11, 3, 6 };
-uint8_t positionPins[4] = { 5, 2, 12, 7 };
+uint8_t segmentPins[7] = { 4, 13, 8, 10, 11, 3, 6 }; // { A, B, C, D, E, F, G }
+uint8_t positionPins[4] = { 5, 2, 12, 7 }; // { D1, D2, D3, D4 }
 
 String receivedText = "";
 
@@ -46,9 +33,10 @@ void loop() {
 // Helper functions
 
 void displayText(String text) {
-  uint8_t position = 0;
   unsigned int textLength = text.length();
-  for (int i = 0; i < textLength || position < 4; i++) {
+  uint8_t position = 0;
+  for (int i = 0; i < textLength; i++) {
+    if (position == 4) break;
     if (displayCharAtPosition(position, text[i], i+1 < textLength ? text[i+1] == '.' : false)) {
       position++;
     }
