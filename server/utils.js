@@ -40,16 +40,16 @@ async function cmd(cmd) {
 
 async function readSensor({ device, sensor, property }) {
   const rawOutput = await cmd('sensors -j')
+  const resolvedProperty = property || `${sensor}_input`
   let parsed
   try {
     parsed = JSON.parse(rawOutput)
   } catch {
-    return '0C'
+    throw new Error('Error occurred while trying to parse sensors output.')
   }
   if (!Reflect.has(parsed, device)) {
     throw new Error(`No device "${device}" was detected.`)
   }
-  let resolvedProperty = property || `${sensor}_input`
   const value = parsed[device][sensor]?.[resolvedProperty]
   return {
     device,
