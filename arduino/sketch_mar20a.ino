@@ -22,11 +22,12 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    receivedText = Serial.readStringUntil('\n');
-  }
   if (receivedText != "") {
     displayText(receivedText);
+  }
+  clearSegments();
+  if (Serial.available() > 0) {
+    receivedText = Serial.readStringUntil('\n');
   }
 }
 
