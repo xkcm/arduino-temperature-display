@@ -1,4 +1,5 @@
 
+const { pluck } = require('rxjs');
 const { promisify } = require('util');
 const { createSerialPortObserver, createSerialPortInstance, createHardwareSensorObserver } = require('./utils');
 
@@ -19,10 +20,13 @@ async function main() {
     }
   })
   tempObserver.subscribe(console.log)
-  tempObserver.subscribe(({ value }) => {
-    arduinoSerialPort.write(`${value.toFixed(1)}C`)
-    arduinoSerialPort.write('\n')
-  })
+  tempObserver
+    .pipe(pluck('value'))
+    .subscribe(value => {
+      console.log(value)
+      arduinoSerialPort.write(`${value.toFixed(1)}C`)
+      arduinoSerialPort.write('\n')
+    })
 }
 
 main()

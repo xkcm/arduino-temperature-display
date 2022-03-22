@@ -1,61 +1,65 @@
-const { fromEvent, map, buffer, filter, Subject, interval, from, mergeWith, take, mergeMap } = require('rxjs');
+const { fromEvent, map, buffer, filter, interval, mergeWith, mergeMap, firstValueFrom } = require('rxjs');
 const { SerialPort } = require('serialport');
-const { exec } = require('child_process')
+const { exec } = require('child_process');
+const {
+  SENSORS_CMD, SENSORS_OUTPUT_PARSING_FAILED_ERROR_MESSAGE,
+  SENSORS_DEVICE_NOT_DETECTED_ERROR_MESSAGE_CREATOR, ARDUINO_MANUFACTURER_NAME
+} = require('./consts');
 
 async function createSerialPortInstance() {
   const ports = await SerialPort.list()
-  const { path } = ports.find(({ manufacturer }) => manufacturer.toLowerCase().includes('arduino'))
+  const { path } = ports.find(
+    ({ manufacturer }) => manufacturer.toLowerCase().includes(ARDUINO_MANUFACTURER_NAME)
+  )
   return new SerialPort({
     path,
     baudRate: 9600,
-    autoOpen: false,
-    endOnClose: true
+    autoOpen: false
   })
 }
 
 function createSerialPortObserver(serialPort) {
-  const sub = fromEvent(serialPort, 'data')
-  return sub.pipe(
-    map(b => b.toString()),
-    buffer(
-      sub.pipe(
-        filter(v => v.includes('\n'))
-      )
-    ),
-    map(chunks => chunks.join('').slice(0, -2))
+  const serialData = fromEvent(serialPort, 'data')
+  return serialData.pipe(
+    map(bufferData => bufferData.toString()),
+    buffer(serialData.pipe(
+      filter(chunk => chunk.includes('\n'))
+    )),
+    map(chunks => chunks.join('').trimEnd())
   )
 }
 
-async function cmd(cmd) {
-  const cp = exec(cmd)
-  const output = []
-  cp.stdout.on('data', c => output.push(c))
-  cp.stderr.on('data', c => output.push(c))
-  return new Promise(res => {
-    cp.on('exit', () => {
-      res(output.join(''))
-    })
-  })
+async function cmd(command) {
+  const childProcess = exec(command)
+  const stdoutStream = fromEvent(childProcess.stdout, 'data')
+  const stderrStream = fromEvent(childProcess.stderr, 'data')
+  const outputStream = stdoutStream.pipe(
+    mergeWith(stderrStream),
+    buffer(fromEvent(childProcess, 'exit')),
+    map(chunks => chunks.join(''))
+  )
+  return firstValueFrom(outputStream)
 }
 
 async function readSensor({ device, sensor, property }) {
-  const rawOutput = await cmd('sensors -j')
+  const rawOutput = await cmd(SENSORS_CMD)
   const resolvedProperty = property || `${sensor}_input`
-  let parsed
+  let parsedOutput
   try {
-    parsed = JSON.parse(rawOutput)
+    parsedOutput = JSON.parse(rawOutput)
   } catch {
-    throw new Error('Error occurred while trying to parse sensors output.')
+    throw new Error(SENSORS_OUTPUT_PARSING_FAILED_ERROR_MESSAGE)
   }
-  if (!Reflect.has(parsed, device)) {
-    throw new Error(`No device "${device}" was detected.`)
+  if (!Reflect.has(parsedOutput, device)) {
+    throw new Error(SENSORS_DEVICE_NOT_DETECTED_ERROR_MESSAGE_CREATOR.construct({ device }))
   }
-  const value = parsed[device][sensor]?.[resolvedProperty]
+  const value = parsedOutput[device][sensor]?.[resolvedProperty]
   return {
     device,
     sensor,
     property: resolvedProperty,
-    value
+    value,
+    timestamp: Date.now()
   }
 }
 
